@@ -8,11 +8,14 @@ from odoo import models
 class StockMove(models.Model):
     _inherit = 'stock.move'
 
-    def quants_unreserve(self):
+    def _do_unreserve(self):
         for move in self:
-            quants = move.reserved_quant_ids
-            super(StockMove, move).quants_unreserve()
+
+            quants = self.env['stock.quant']._gather(
+                move.product_id, move.location_id, strict=False)
+            reserved_quants = quants.filtered(lambda q: q.reserved_quantity > 0)
+            super(StockMove, move). _do_unreserve()
             if (
-                    quants and
+                    reserved_quants and
                     not self.env.context.get('disable_stock_quant_merge')):
-                quants.merge_stock_quants()
+                reserved_quants.merge_stock_quants()
